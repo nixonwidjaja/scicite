@@ -1,0 +1,97 @@
+import torch 
+from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+from torch.optim import Adam
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import f1_score
+
+# train the model for a given number of epochs
+def train_model(model, tokenizer, num_epoch, X_train, y_train):
+    # Encode the training data
+    encoded_data_train = tokenizer.batch_encode_plus(
+        X_train,
+        add_special_tokens=True, 
+        return_attention_mask=True, 
+        pad_to_max_length=True, 
+        max_length=512, 
+        return_tensors='pt'
+    )
+    labels_train = torch.tensor(y_train)
+
+    # Create data loader for training
+    batch_size = 256
+    dataset_train = TensorDataset(encoded_data_train['input_ids'], encoded_data_train['attention_mask'], labels_train)
+    dataloader_train = DataLoader(dataset_train, sampler=RandomSampler(dataset_train), batch_size=batch_size)
+
+    # Connect to GPU if available
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
+
+    # Define optimizer for training data
+    optimizer = Adam(model.parameters(), lr=1e-5, eps=1e-8)
+
+    # Training loop
+    for _ in range(num_epoch):
+        model.train()
+        
+        for train_batch in dataloader_train:
+            optimizer.zero_grad()
+
+            id, mask, label = train_batch
+            id = id.to(device)
+            mask = mask.to(device)
+            label = label.to(device)
+
+            outputs = model(id, attention_mask=mask, labels=label)
+
+            loss = outputs.loss
+            loss.backward()
+            
+            optimizer.step()
+            
+    
+    return model 
+
+# return f1 macro score of the model
+def eval_model(model, tokenizer, X_test, y_test):
+    encoded_data_test = tokenizer.batch_encode_plus(
+        X_test,
+        add_special_tokens=True, 
+        return_attention_mask=True, 
+        pad_to_max_length=True, 
+        max_length=512, 
+        return_tensors='pt'
+    )
+    labels_test = torch.tensor(y_test)
+
+    # Create data loader for test data
+    batch_size = 256
+    test_dataset = TensorDataset(encoded_data_test['input_ids'], encoded_data_test['attention_mask'], labels_test)
+    test_dataloader = DataLoader(test_dataset, sampler=SequentialSampler(test_dataset), batch_size=batch_size)
+
+    # Connect to GPU if available
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
+
+    # Evaluate the model
+    model.eval()
+    predictions = []
+    labels = []
+    with torch.no_grad():
+        for test_batch in test_dataloader:
+            id, mask, label = test_batch
+            id = id.to(device)
+            mask = mask.to(device)
+            label = label.to(device)
+
+            outputs = model(id, attention_mask=mask, labels=label)
+            logits = outputs.logits
+            _, prediction  = torch.max(logits, dim=1)
+
+            predictions.extend(prediction.tolist())
+            labels.extend(label.tolist())
+            
+    return f1_score(labels, predictions, average='macro')
+
+
+def save_model(model, save_path):
+    torch.save(model.state_dict(), save_path)
