@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from sklearn.preprocessing import LabelEncoder
 from transformers import AlbertTokenizer, AlbertForSequenceClassification
-from utils import train_model, eval_model, save_model
+from utils import train_model, eval_model, save_model, augment_data_multiclass
 
 train_df = pd.read_json('../train.jsonl', lines=True)
 X_train = train_df['string']
@@ -12,6 +12,9 @@ y_train = train_df['label']
 test_df = pd.read_json('test.jsonl', lines=True)
 X_test = test_df['string']
 y_test = test_df['label']
+
+# Upsample the training data
+X_train, y_train = augment_data_multiclass(X_train, y_train)
 
 # Initialize LabelEncoder
 label_encoder = LabelEncoder()
@@ -29,13 +32,14 @@ for param in model.parameters():
     param.requires_grad = False
 for param in model.classifier.parameters():
     param.requires_grad = True
-for param in model.embeddings.parameters():
-    param.requires_grad = True
+#for param in model.albert.embeddings.parameters():
+#    param.requires_grad = True
 
 # train the model
-model = train_model(model, tokenizer, 1, X_train, y_train)
+model = train_model(model, tokenizer, 5, X_train, y_train, 1e-2)
 
-# save the model
+# save the model, make it "CPU-friendly" first
+model = model.to('cpu')
 save_model(model, 'base-albert-model.pth')
 
 # get the score

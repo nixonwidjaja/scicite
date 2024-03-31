@@ -1,11 +1,26 @@
+import pandas as pd
 import torch 
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from torch.optim import Adam
-from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import f1_score
+from sklearn.utils import resample
+
+def augment_data_multiclass(X, y):
+    df = pd.concat([X, y], axis=1)
+    majority_class_size = df['label'].value_counts().max()
+    upsampled_dataframes = []
+    for class_label in df['label'].unique():
+        class_df = df[df['label'] == class_label]
+        if len(class_df) < majority_class_size:
+            class_df_upsampled = resample(class_df, replace=True, n_samples=majority_class_size, random_state=10)
+            upsampled_dataframes.append(class_df_upsampled)
+        else:
+            upsampled_dataframes.append(class_df)
+    upsampled_df = pd.concat(upsampled_dataframes)
+    return upsampled_df['string'], upsampled_df['label']
 
 # train the model for a given number of epochs
-def train_model(model, tokenizer, num_epoch, X_train, y_train):
+def train_model(model, tokenizer, num_epoch, learning_rate, X_train, y_train):
     # Encode the training data
     encoded_data_train = tokenizer.batch_encode_plus(
         X_train,
@@ -27,7 +42,7 @@ def train_model(model, tokenizer, num_epoch, X_train, y_train):
     model.to(device)
 
     # Define optimizer for training data
-    optimizer = Adam(model.parameters(), lr=1e-5, eps=1e-8)
+    optimizer = Adam(model.parameters(), lr=learning_rate)
 
     # Training loop
     for _ in range(num_epoch):
