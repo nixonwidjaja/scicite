@@ -2,10 +2,15 @@
 
 #SBATCH --job-name=albert-train
 #SBATCH --mail-type=BEGIN,END
+
+# Change this to email
 #SBATCH --mail-user=e0735378@u.nus.edu 
 
-#SBATCH --partition=standard
-#SBATCH --time=30
+# Change this for other partition
+#SBATCH --partition=medium
+
+# Change this if need other time limit
+#SBATCH --time=60
 
 ## Just useful logfile names
 
@@ -18,6 +23,7 @@ echo "Job is running on $(hostname), started at $(date)"
 nvidia-smi 
 
 # Export path for installation dependencies
+# CHANGE the path to :/home/f/{username}/.loca/bin
 export PATH="$PATH:/home/f/farrelds/.local/bin"
 
 # Install dependencies
