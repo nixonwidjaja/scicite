@@ -2,7 +2,7 @@ import pandas as pd
 import torch 
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from torch.optim import Adam
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, accuracy_score
 from sklearn.utils import resample
 
 def augment_data_multiclass(X, y):
@@ -20,7 +20,7 @@ def augment_data_multiclass(X, y):
     return upsampled_df['string'], upsampled_df['label']
 
 # train the model for a given number of epochs
-def train_model(model, tokenizer, num_epoch, learning_rate, X_train, y_train):
+def train_model(model, tokenizer, num_epoch, learning_rate, batch_size, X_train, y_train):
     # Encode the training data
     encoded_data_train = tokenizer.batch_encode_plus(
         X_train,
@@ -33,7 +33,6 @@ def train_model(model, tokenizer, num_epoch, learning_rate, X_train, y_train):
     labels_train = torch.tensor(y_train)
 
     # Create data loader for training
-    batch_size = 256
     dataset_train = TensorDataset(encoded_data_train['input_ids'], encoded_data_train['attention_mask'], labels_train)
     dataloader_train = DataLoader(dataset_train, sampler=RandomSampler(dataset_train), batch_size=batch_size)
 
@@ -45,8 +44,11 @@ def train_model(model, tokenizer, num_epoch, learning_rate, X_train, y_train):
     optimizer = Adam(model.parameters(), lr=learning_rate)
 
     # Training loop
-    for _ in range(num_epoch):
+    for epoch in range(num_epoch):
         model.train()
+
+        curr_total_loss = 0.
+        count = 0
         
         for train_batch in dataloader_train:
             optimizer.zero_grad()
@@ -59,14 +61,20 @@ def train_model(model, tokenizer, num_epoch, learning_rate, X_train, y_train):
             outputs = model(id, attention_mask=mask, labels=label)
 
             loss = outputs.loss
+
+            curr_total_loss += loss.item()
+            count += 1
+
             loss.backward()
             
             optimizer.step()
-            
+
+        avg_loss = curr_total_loss / count
+        print(epoch, avg_loss)       
     
     return model 
 
-# return f1 macro score of the model
+# return f1 macro and accuracy of the model
 def eval_model(model, tokenizer, X_test, y_test):
     encoded_data_test = tokenizer.batch_encode_plus(
         X_test,
@@ -79,7 +87,7 @@ def eval_model(model, tokenizer, X_test, y_test):
     labels_test = torch.tensor(y_test)
 
     # Create data loader for test data
-    batch_size = 256
+    batch_size = 16
     test_dataset = TensorDataset(encoded_data_test['input_ids'], encoded_data_test['attention_mask'], labels_test)
     test_dataloader = DataLoader(test_dataset, sampler=SequentialSampler(test_dataset), batch_size=batch_size)
 
@@ -105,7 +113,10 @@ def eval_model(model, tokenizer, X_test, y_test):
             predictions.extend(prediction.tolist())
             labels.extend(label.tolist())
             
-    return f1_score(labels, predictions, average='macro')
+    f1 = f1_score(labels, predictions, average='macro')
+    acc = accuracy_score(labels, predictions)
+
+    return f1, acc
 
 
 def save_model(model, save_path):

@@ -7,10 +7,13 @@
 #SBATCH --mail-user=e0735378@u.nus.edu 
 
 # Change this for other partition
-#SBATCH --partition=medium
+#SBATCH --partition=long
+
+# Change this to other number of GPUs if needed
+#SBATCH --gpus=4
 
 # Change this if need other time limit
-#SBATCH --time=60
+#SBATCH --time=12:00:00
 
 ## Just useful logfile names
 
