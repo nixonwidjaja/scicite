@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from sklearn.preprocessing import LabelEncoder
 from transformers import AlbertTokenizer, AlbertForSequenceClassification
-from utils import train_model, eval_model, save_model, augment_data_multiclass
+from utils import train_model, eval_model, save_model, augment_data_multiclass, preprocessing
 
 train_df = pd.read_json('../train.jsonl', lines=True)
 X_train = train_df['string']
@@ -15,6 +15,10 @@ y_test = test_df['label']
 
 # Upsample the training data
 X_train, y_train = augment_data_multiclass(X_train, y_train)
+
+# Preprocess X_train and X_test first
+X_train = X_train.apply(preprocessing)
+X_test = X_test.apply(preprocessing)
 
 # Initialize LabelEncoder
 label_encoder = LabelEncoder()

@@ -32,6 +32,9 @@ export PATH="$PATH:/home/f/farrelds/.local/bin"
 # Install dependencies
 pip install -r requirements.txt
 
+# Install required nltk resources
+srun python -c "import nltk; nltk.download('stopwords'); nltk.download('wordnet');"
+
 # Run the training pipeline
 echo "Running!"
 srun python pipeline.py

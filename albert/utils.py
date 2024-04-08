@@ -1,5 +1,9 @@
 import pandas as pd
 import torch 
+import nltk
+from nltk.tokenize import RegexpTokenizer
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from torch.optim import Adam
 from sklearn.metrics import f1_score, accuracy_score
@@ -18,6 +22,29 @@ def augment_data_multiclass(X, y):
             upsampled_dataframes.append(class_df)
     upsampled_df = pd.concat(upsampled_dataframes)
     return upsampled_df['string'], upsampled_df['label']
+
+def cleaning(text):
+    stop_words = stopwords.words('english')
+    text = text.lower()
+    text = ' '.join(x for x in text.split() if x not in stop_words)
+    return text
+
+def lemmatize(text):
+    lemmatizer = WordNetLemmatizer()
+    words = []
+    for x in text.split():
+        x = lemmatizer.lemmatize(x)
+        words.append(x)
+    text = ' '.join(words)
+    return text
+
+def preprocessing(text):
+    # Tokenization
+    tokenizer = RegexpTokenizer(r'[a-zA-Z0-9]+')
+    text = cleaning(text)
+    text = lemmatize(text)
+    text = ' '.join(tokenizer.tokenize(text))
+    return text
 
 # train the model for a given number of epochs
 def train_model(model, tokenizer, num_epoch, learning_rate, batch_size, X_train, y_train):
