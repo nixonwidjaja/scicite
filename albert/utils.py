@@ -47,7 +47,12 @@ def preprocessing(text):
     return text
 
 # train the model for a given number of epochs
-def train_model(model, tokenizer, num_epoch, learning_rate, batch_size, X_train, y_train):
+def train_model(model, tokenizer, num_epoch, learning_rate, batch_size, X_train, y_train, use_preprocess=False):
+    # Preprocess X_train and X_test first
+    if use_preprocess:
+        X_train = X_train.apply(preprocessing)
+        X_test = X_test.apply(preprocessing)
+
     # Encode the training data
     encoded_data_train = tokenizer.batch_encode_plus(
         X_train,
