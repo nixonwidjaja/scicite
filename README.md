@@ -4,7 +4,7 @@ This github repository presents a project done for a CS4248 project assignment b
 
 The below serves as a guide and notes to run and test the models.
 
-1. Run baseline model, MNB, and LR in `/initial-evaluation/MNB_LR_category.ipynb`
+1. Run baseline model (MNB and LR) in `/initial-evaluation/MNB_LR_category.ipynb`
 2. Run other models in `<model_name>.ipynb`
 3. `paraphrased.jsonl` and `synonymized.jsonl` is necessary if you want to run the category dataset.
 4. All models run in the order of each Jupyter Notebook's code chunks
